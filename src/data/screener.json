@@ -1,0 +1,1 @@
+{"as_of":"2026-05-04","results":[{"ticker":"SPY","close":720.65,"vrp":0.01,"ivPct":49.0,"ts":1.346,"score":3,"vrpP":true,"ivP":true,"tsP":true},{"ticker":"QQQ","close":674.15,"vrp":0.011,"ivPct":38.0,"ts":1.246,"score":3,"vrpP":true,"ivP":true,"tsP":true},{"ticker":"IWM","close":279.28,"vrp":-0.007,"ivPct":2.0,"ts":1.345,"score":2,"vrpP":false,"ivP":true,"tsP":true}]}
