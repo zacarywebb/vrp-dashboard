@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import backtestStatic from "./data/backtest.json";
+import screenerStatic from "./data/screener.json";
 
 const COLORS = {
   bg: "#0a0a0f",
@@ -591,19 +593,20 @@ export default function App() {
   const [backtestLoading, setBacktestLoading] = useState(true);
   const [screenerLoading, setScreenerLoading] = useState(true);
   const [screenerRefreshing, setScreenerRefreshing] = useState(false);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     fetch("/api/backtest")
-      .then(r => r.json())
-      .then(data => { setBacktestData(data); setBacktestLoading(false); })
-      .catch(() => setBacktestLoading(false));
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => { setBacktestData(data); setIsLive(true); setBacktestLoading(false); })
+      .catch(() => { setBacktestData(backtestStatic); setBacktestLoading(false); });
   }, []);
 
   useEffect(() => {
     fetch("/api/screener")
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(data => { setScreenerData(data); setScreenerLoading(false); })
-      .catch(() => setScreenerLoading(false));
+      .catch(() => { setScreenerData(screenerStatic); setScreenerLoading(false); });
   }, []);
 
   const handleScreenerRefresh = () => {
@@ -654,9 +657,9 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: backtestData ? COLORS.green : COLORS.amber }} />
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: backtestLoading ? COLORS.amber : isLive ? COLORS.green : COLORS.textDim }} />
           <span style={{ fontSize: 12, color: COLORS.textMuted }}>
-            {backtestData ? "Signals updated daily" : "Connecting…"}
+            {backtestLoading ? "Connecting…" : isLive ? "Live data" : "Demo — snapshot data"}
           </span>
         </div>
       </nav>
@@ -670,6 +673,7 @@ export default function App() {
             loading={screenerLoading}
             onRefresh={handleScreenerRefresh}
             refreshing={screenerRefreshing}
+            isLive={isLive}
           />
         )}
       </main>
