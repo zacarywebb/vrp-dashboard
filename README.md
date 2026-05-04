@@ -33,23 +33,6 @@ This project implements that idea end-to-end: a signal framework that identifies
 
 ---
 
-## Backtest
-
-Out-of-sample simulation across 2018–2025, trained on 2007–2017:
-
-| Metric | Simulated |
-|---|---|
-| Total return | 8,214% |
-| CAGR | 81.4% |
-| Sharpe ratio | 4.51 |
-| Max drawdown | -13.6% |
-| Win rate | 97.7% |
-| Trades | 1,913 |
-
-**These numbers are intentionally explained in the dashboard.** The simulation uses estimated IV (VIX-based proxies rather than real options chains) and a theoretical theta-decay model for P&L — both of which produce results that overstate live performance. The Strategy page walks through exactly why: the win rate and Sharpe are structural artifacts of the simulation approach. Realistic live expectations are 85–92% win rate, 1.0–2.0 Sharpe, 15–35% CAGR. The edge is real; the magnitude is not.
-
----
-
 ## Live screener
 
 Every weekday at 5pm ET, a GitHub Actions workflow in the private strategy repo:
@@ -67,9 +50,9 @@ The Screener page always shows the most recent signal snapshot with its date. No
 ## Stack
 
 **Frontend**
-- React 18, Vite 5
-- All charts rendered on HTML Canvas (no charting library)
-- Static JSON data bundled at build time; falls back gracefully when no backend is running
+- React, Vite
+- All charts rendered on HTML Canvas
+- Static JSON data bundled at build time; falls back nicely when no backend is running (backend is held in private repo)
 
 **Backend** (private repo)
 - Python — pandas, numpy, scipy, yfinance
