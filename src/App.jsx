@@ -364,6 +364,45 @@ function BacktestPage({ data, loading }) {
       </div>
 
       <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: COLORS.text, margin: 0 }}>Statistical robustness</h3>
+          <span style={{ fontSize: 11, color: COLORS.textDim }}>Bailey & López de Prado (2014) — PSR / DSR framework</span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div style={{ background: COLORS.surface, borderRadius: 10, border: `0.5px solid ${COLORS.border}`, borderTop: `2px solid ${COLORS.accent}`, padding: "16px 20px" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Non-normality correction</div>
+            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: COLORS.accent }}>1.68×</div>
+            <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4, lineHeight: 1.5 }}>CI widened by fat tails (κ=64.2) and left skew (γ₃=−1.94). Effective z-score: 7.30 vs naive 12.28.</div>
+          </div>
+          <div style={{ background: COLORS.surface, borderRadius: 10, border: `0.5px solid ${COLORS.border}`, borderTop: `2px solid ${COLORS.green}`, padding: "16px 20px" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>PSR — true SR &gt; 2.0</div>
+            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: COLORS.green }}>99.998%</div>
+            <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4, lineHeight: 1.5 }}>Probability the strategy's true Sharpe exceeds 2.0, after adjusting for non-normal returns.</div>
+          </div>
+          <div style={{ background: COLORS.surface, borderRadius: 10, border: `0.5px solid ${COLORS.border}`, borderTop: `2px solid ${COLORS.amber}`, padding: "16px 20px" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Deflated Sharpe Ratio</div>
+            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: COLORS.amber }}>69.2%</div>
+            <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4, lineHeight: 1.5 }}>Probability selected params (SR 4.51) beat what random search across 1,500 combinations finds by chance (expected max: 4.20).</div>
+          </div>
+          <div style={{ background: COLORS.surface, borderRadius: 10, border: `0.5px solid ${COLORS.border}`, borderTop: `2px solid ${COLORS.red}`, padding: "16px 20px" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Min. track record for 95% DSR</div>
+            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: COLORS.red }}>79.6 yr</div>
+            <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4, lineHeight: 1.5 }}>Current: 7.4 yr. Statistical validation of the selected parameter set requires data that doesn't exist.</div>
+          </div>
+        </div>
+
+        <div style={{ background: COLORS.surface, borderRadius: 10, border: `0.5px solid ${COLORS.border}`, padding: "18px 20px", fontSize: 13, color: COLORS.textMuted, lineHeight: 1.75 }}>
+          <span style={{ color: COLORS.text, fontWeight: 500 }}>What this means: </span>
+          The PSR analysis gives near-certain confidence that the strategy has {" "}
+          <span style={{ color: COLORS.green }}>real, positive edge</span> — the VRP is structurally persistent, and the evidence for it survives even aggressive non-normality corrections. But the{" "}
+          <span style={{ color: COLORS.amber }}>DSR of 69.2%</span> exposes a harder problem: the reported Sharpe of 4.51 barely exceeds the expected maximum SR that random selection from 1,500 parameter combinations would produce (4.20). The gap is{" "}
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.accent }}>0.31 SR units</span>, and validating a difference that small with enough confidence requires roughly{" "}
+          <span style={{ color: COLORS.red }}>80 years of data</span>. Conclusion: the sign of the edge is robust; the specific magnitude is not.
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 32 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, color: COLORS.text, marginBottom: 12 }}>Equity curve</h3>
         <div style={{ background: COLORS.surface, borderRadius: 12, border: `0.5px solid ${COLORS.border}`, padding: "20px 20px 12px" }}>
           {equity.length > 0 ? (
