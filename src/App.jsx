@@ -527,7 +527,7 @@ function ScreenerPage({ data, loading, onRefresh, refreshing }) {
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 600, color: COLORS.text, margin: "0 0 8px" }}>Daily screener</h2>
           <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0 }}>
-            Scanning {rows.length || 51} ETFs{asOf ? ` · As of ${asOf}` : ""}
+            Scanning {rows.length || 51} ETFs{asOf ? ` · As of ${asOf} (scans after market close each market day)` : ""}
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
