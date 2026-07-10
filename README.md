@@ -1,156 +1,73 @@
 # VRP Strategy Dashboard
 
-A full-stack quantitative options strategy dashboard. The frontend visualizes a systematic variance risk premium (VRP) harvesting strategy backtested across 51 liquid ETFs from 2018–2025. The screener runs every weekday after market close via GitHub Actions, pulling live market data to compute fresh signal readings — no manual intervention required.
+A quantitative options strategy that harvests the **variance risk premium** — the persistent
+gap between implied and realized volatility — by selling defined-risk iron condors on 51 liquid
+ETFs. This repo is the dashboard; the backtest engine, screener, and research live in a
+companion repo and publish here automatically.
 
 **[Live demo →](https://zacarywebb.github.io/vrp-dashboard/)**
 
----
+## Results (out-of-sample, 2018–2025)
 
-## What it is
+| Metric | Strategy | SPY buy & hold |
+|---|---|---|
+| CAGR | 17.2% | 13.8% |
+| Sharpe (excess) | 1.51 | 0.62 |
+| Max drawdown | -8.9% | -33.7% |
+| Win rate | 83.9% (503 trades) | — |
+| Correlation to SPY | 0.14 | 1.0 |
 
-The variance risk premium is the persistent spread between implied volatility (what options buyers pay) and realized volatility (what actually happens). Because market participants structurally overpay for options as portfolio hedges, this spread can be systematically harvested by selling options under the right conditions.
+Parameters were selected on pre-2018 data only; the test period never touched selection. An
+earlier version of this project reported a 4.5 Sharpe / 97% win rate — those were simulation
+artifacts (no daily mark-to-market, flat-vol pricing), and the rebuild that fixed them is the
+main story of the dashboard's Backtest and Validation tabs.
 
-This project implements that idea end-to-end: a signal framework that identifies favorable conditions, an iron condor trade structure with embedded risk management, a full historical backtest, and a live daily screener.
+## The signals — and why they work
 
----
+A trade needs the variance premium to be present, structural, and free of near-term stress:
 
-## Strategy
+- **VRP spread** (IV − realized vol, positive and persistent). Option buyers systematically
+  overpay for convexity, so IV exceeds subsequent RV on average — the premium the whole
+  strategy collects (*Carr & Wu 2009; Bakshi & Kapadia 2003*).
+- **IV percentile — top half of its 1-year range.** This is inverted from common folklore: the
+  VRP is *countercyclical* and highest after volatility rises, so you get paid most when there
+  is premium to sell (*Bollerslev, Tauchen & Zhou 2009*). Our own trade data agreed — the
+  low-IV rule was filtering out the profitable trades.
+- **Term structure** (per-ticker short vs long realized vol; VIX3M/VIX for SPY). Backwardation
+  flags acute stress where short-vol strategies bleed — stay out (*Johnson 2017*).
+- **Long-run anchor** (IV must also clear 1-year realized vol). Volatility mean-reverts to its
+  long-run level, so that's the benchmark that matters (*Goyal & Saretto 2009*).
 
-**Three signals must all pass before a trade is considered:**
+**Trade:** sell a 16Δ strangle, buy 5Δ wings, 30 DTE, one day after the signal. Rank the day's
+candidates by VRP and take the top 3. Manage at 75% of credit, stop at 2× credit, skip the days
+around scheduled FOMC meetings.
 
-| Signal | Logic |
-|---|---|
-| VRP spread | IV must exceed realized vol by ≥1%, sustained over a 75-day rolling window — ensures the premium is structural, not a blip |
-| IV percentile | Current IV must rank in the bottom 50% of its trailing 1-year range — counterintuitively, low IV produces the best short-vol returns |
-| Term structure | Each ticker's 10-day realized vol must not significantly exceed its 60-day realized vol — ratio below 0.98 signals near-term stress |
+## Statistical honesty
 
-**Trade structure:** Iron condors — sell 25-delta strangle, buy 5-delta wings, 30 DTE. Defined max loss from entry.
+A short-vol backtest that looks amazing usually is. Two guardrails keep this one grounded:
 
-**Risk management (parameter-optimized via sweep across 1,500 combinations):**
-- Profit target at 30% of max credit
-- Stop-loss at 3× credit received
-- Max 8% of capital per position, 50% total margin deployed, 8 concurrent positions
+- **Every improvement is pre-registered and tested on training data only**, then confirmed on a
+  test period no parameter ever saw. Rejected ideas (VVIX gates, single-sided books, leverage,
+  asymmetric deltas) are documented alongside the adopted ones.
+- **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) counts every one of the ~60 trials
+  run, so selection bias is quantified rather than hidden. On the untouched test period, the
+  probabilistic Sharpe puts ~92% odds that the true Sharpe exceeds 1.0 — likely real, though a
+  live forward track (running now on the Screener tab) is the only thing that truly settles it.
 
----
-
-## Live screener
-
-Every weekday at 5pm ET, a GitHub Actions workflow in the private strategy repo:
-
-1. Fetches closing prices for all 51 ETFs via Yahoo Finance
-2. Fetches volatility data from FRED — VIX and VIX3M for SPY, CBOE volatility indices (VXEEM, GVZ, OVX) for EEM/GLD/USO, and beta-scaled VIX estimates for all other tickers
-3. Computes realized volatility (Yang-Zhang estimator), VRP spread, IV percentile, and term structure ratio for each ticker
-4. Scores each ticker 0–3 and writes the results to `src/data/screener.json`
-5. Commits the file to this repo, triggering an automatic Pages redeploy
-
-The Screener page always shows the most recent signal snapshot with its date. No server is required — the data is baked into the static build.
-
----
+Full methodology, pricing validation against real option chains, and annotated citations are on
+the live dashboard.
 
 ## Stack
 
-**Frontend**
-- React, Vite
-- All charts rendered on HTML Canvas
-- Static JSON data bundled at build time; falls back nicely when no backend is running (backend is held in private repo)
+- **Frontend:** React + Vite, hand-rolled SVG charts, no chart library. Deployed to GitHub Pages.
+- **Backend (companion repo):** Python — daily mark-to-market backtest engine, Black-Scholes
+  pricing with a skew surface calibrated to real chains, FastAPI for the live API.
+- **Data (all free):** Yahoo Finance (prices), FRED (VIX/VIX3M, T-bill rates), DoltHub
+  (real option chains for validation + per-ticker IV), CBOE (VVIX).
+- **Automation:** a GitHub Action runs the screener after each market close and pushes fresh
+  signals + the paper-trading track record here.
 
-**Backend** (private repo)
-- Python — pandas, numpy, scipy, yfinance
-- `signals.py` — three-signal framework and screener engine
-- `quant.py` — Yang-Zhang realized vol, Black-Scholes pricing, iron condor construction
-- `backtest.py` — full simulation engine with position sizing via OLS regression
-- `api.py` — FastAPI server for local development (live equity curve, trade log, screener)
-- `sweep.py` — parameter optimization across 1,500 signal/risk combinations
+## Disclaimer
 
-**Automation**
-- GitHub Actions cron: runs screener daily, pushes updated data to this repo
-- GitHub Pages: deploys on every push to `main`
-
----
-
-## Statistical robustness
-
-The backtest reports a Sharpe Ratio of 4.51 and a 97.7% win rate. Both figures warrant scrutiny — not because the underlying edge is fake, but because simulation artifacts and selection bias from testing 1,500 parameter combinations can inflate observed performance. This section applies the Bailey & López de Prado (2014) framework to quantify exactly how much.
-
-### The two-part question
-
-The Sharpe Ratio estimator has two independent problems here:
-
-1. **Non-normality.** Short-volatility returns are not Gaussian. Most days produce small theta gains; occasionally a vol spike produces a large loss. The resulting distribution has skewness of −1.94 and full kurtosis of 64.19 (vs. 3.0 for a normal distribution). This makes the standard Sharpe estimator overconfident — its confidence interval is artificially narrow.
-
-2. **Selection bias.** Running 1,500 parameter combinations and reporting the best one's Sharpe is a multiple-testing experiment. Even if every combination had zero true edge, the winner would show an inflated observed Sharpe just from random variation.
-
-The Probabilistic Sharpe Ratio (PSR) fixes problem one. The Deflated Sharpe Ratio (DSR) fixes both simultaneously.
-
-### PSR — correcting for fat tails and negative skew
-
-The PSR replaces the naive Sharpe confidence interval with one that accounts for non-normality:
-
-```
-PSR(SR_b) = Φ[ (SR̂ − SR_b) × √(T−1) / √(1 − γ₃·SR̂ + (γ₄−1)/4·SR̂²) ]
-```
-
-The denominator correction factor is **1.68×**, meaning the effective z-score is 7.30 rather than the naive 12.28. Despite the correction, the results are strong:
-
-| Benchmark | PSR | Meaning |
-|---|---|---|
-| SR > 0 | ~100% | Strategy almost certainly has positive edge |
-| SR > 1.0 | ~100% | Edge very likely exceeds a passive benchmark |
-| SR > 2.0 | 99.998% | Near-certainty of meaningful risk-adjusted returns |
-
-The PSR confirms the sign of the edge is real. The VRP is a well-documented, structurally persistent phenomenon — options buyers consistently overpay for protection. This shows up clearly even after correcting for the non-normal return distribution.
-
-### DSR — correcting for 1,500 tested combinations
-
-The DSR sets the PSR benchmark to the *expected maximum Sharpe* that blind random search across N=1,500 parameter combinations would produce by chance. This is derived from the empirical spread of performance across the sweep:
-
-```
-SR* = SD(SR_k) × [(1 − γ_E) · Φ⁻¹(1 − 1/N) + γ_E · Φ⁻¹(1 − 1/(N·e))]
-    = 1.247 × 3.36
-    = 4.20
-```
-
-The reported Sharpe of 4.51 exceeds this expected maximum by **0.31 units**. The DSR — the probability the selected parameter set genuinely beats what chance selection from 1,500 trials would find — is:
-
-**DSR = 69.2%**
-
-There is roughly a **1-in-3 chance** the selected parameters are not meaningfully better than a lucky draw from the sweep. This is not a comfortable margin.
-
-### Minimum track record
-
-For DSR ≥ 95% confidence given N=1,500 trials, the required number of daily observations is:
-
-**79.6 years** — against a current track record of 7.4 years.
-
-This is the quantified form of a universal problem in systematic strategy development: the more parameter combinations you test, the longer the out-of-sample track record needed to distinguish genuine optimization from curve-fitting. 1,500 combinations × one decade of data is not resolvable with any reasonable amount of additional backtested history.
-
-### What this means
-
-The statistical picture splits cleanly into two tiers:
-
-**The sign is validated.** PSR provides near-certainty that the true Sharpe exceeds 2.0 even after non-normality corrections. The VRP is a real structural premium — not a backtest artifact — and this implementation captures it.
-
-**The magnitude is not.** The DSR of 69.2% means the specific magnitude of the reported Sharpe (4.51) cannot be distinguished from lucky parameterization with the available data. The synthetic IV proxy further muddies this: if real-world implied volatility behaves more noisily than the beta-scaled VIX estimates used here (which it does), actual portfolio vol is higher, which compresses the SR estimate and collapses DSR toward zero.
-
-The honest interpretation: treat the backtest figures as upper bounds. The strategy likely produces real, positive, risk-adjusted returns. Whether the live Sharpe is 1.5 or 3.0 is a question that can only be answered with real options fills and forward time — not more backtesting.
-
----
-
-## Running locally
-
-```bash
-npm install
-npm run dev    # static demo at http://localhost:5173
-```
-
-To connect the live backend (requires the private strategy repo):
-
-```bash
-# Terminal 1 — API server
-python3 -m uvicorn api:app --reload --port 8000
-
-# Terminal 2 — frontend
-npm run dev
-```
-
-When the backend is reachable, the nav shows "Live data" and the Screener page enables a manual Refresh button that triggers a fresh scan on demand.
+For educational purposes only. All performance figures are hypothetical simulation results, not
+actual trading. Past performance — simulated or real — does not guarantee future results.
