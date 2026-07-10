@@ -9,6 +9,7 @@ import backtestStatic from "./data/backtest.json";
 import screenerStatic from "./data/screener.json";
 import validationStatic from "./data/validation.json";
 import dsrStatic from "./data/dsr.json";
+import paperStatic from "./data/paper.json";
 
 const NAV_ITEMS = ["Strategy", "Backtest", "Validation", "Screener"];
 
@@ -36,6 +37,7 @@ export default function App() {
   const [validation] = useApi("/api/validation", validationStatic);
   const [dsr] = useApi("/api/dsr", dsrStatic);
   const [screener, setScreener] = useApi("/api/screener", screenerStatic);
+  const [paper] = useApi("/api/paper", paperStatic);
 
   const handleScreenerRefresh = () => {
     setRefreshing(true);
@@ -98,6 +100,7 @@ export default function App() {
         {page === 3 && (
           <ScreenerPage
             data={screener.data}
+            paper={paper.data}
             loading={screener.loading}
             onRefresh={handleScreenerRefresh}
             refreshing={refreshing}

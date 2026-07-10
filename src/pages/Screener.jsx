@@ -2,7 +2,53 @@ import { useState } from "react";
 import { COLORS, MONO, CARD } from "../theme";
 import { Pill, Spinner, TH, TD } from "../components/ui";
 
-export default function ScreenerPage({ data, loading, onRefresh, refreshing }) {
+function PaperTrack({ paper }) {
+  if (!paper?.equity?.length) return null;
+  const eq = paper.equity;
+  const start = 100000;
+  const cur = eq[eq.length - 1].value;
+  const ret = ((cur / start) - 1) * 100;
+  const closed = paper.closed ?? [];
+  const wins = closed.filter((t) => t.pnl > 0).length;
+  const days = eq.length;
+
+  return (
+    <div style={{ ...CARD, borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, margin: 0 }}>Forward paper track</h3>
+        <span style={{ fontSize: 11, color: COLORS.textDim }}>
+          live signals traded on a simulated $100K account since {paper.started} — the strategy's real out-of-sample test, built one day at a time
+        </span>
+      </div>
+      <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
+        {[
+          ["Equity", `$${cur.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, ret >= 0 ? COLORS.green : COLORS.red],
+          ["Return", `${ret >= 0 ? "+" : ""}${ret.toFixed(2)}%`, ret >= 0 ? COLORS.green : COLORS.red],
+          ["Open positions", paper.open?.length ?? 0, COLORS.text],
+          ["Closed trades", closed.length ? `${closed.length} (${wins} wins)` : "0", COLORS.text],
+          ["Trading days", days, COLORS.textMuted],
+        ].map(([l, v, c], i) => (
+          <div key={i}>
+            <div style={{ fontSize: 11, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>{l}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, fontFamily: MONO, color: c }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {paper.open?.length > 0 && (
+        <div style={{ marginTop: 12, fontSize: 12, color: COLORS.textMuted, fontFamily: MONO }}>
+          {paper.open.map((p) => (
+            <span key={p.ticker} style={{ marginRight: 16 }}>
+              {p.ticker} {p.A.toFixed(0)}/{p.B.toFixed(0)}/{p.C.toFixed(0)}/{p.D.toFixed(0)} ×{p.contracts}
+              <span style={{ color: COLORS.textDim }}> exp {p.expiry}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ScreenerPage({ data, paper, loading, onRefresh, refreshing }) {
   const [sortBy, setSortBy] = useState("score");
   const [expanded, setExpanded] = useState(null);
   const rows = data?.results ?? [];
@@ -51,6 +97,7 @@ export default function ScreenerPage({ data, loading, onRefresh, refreshing }) {
 
       {loading ? <Spinner /> : (
         <>
+          <PaperTrack paper={paper} />
           <div style={{ ...CARD, borderRadius: 12, padding: "16px 20px", marginBottom: 24, display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: passes.length > 0 ? COLORS.green : COLORS.amber }} />
             {passes.length > 0 ? (
@@ -89,7 +136,14 @@ export default function ScreenerPage({ data, loading, onRefresh, refreshing }) {
                             cursor: r.condor ? "pointer" : "default",
                           }}>
                         <TD mono color={COLORS.text} style={{ fontWeight: 600 }}>
-                          {r.ticker}{r.condor ? <span style={{ color: COLORS.textDim, marginLeft: 6 }}>{expanded === r.ticker ? "▾" : "▸"}</span> : ""}
+                          {r.ticker}
+                          {r.ivSrc === "real" && (
+                            <span title="IV from real option chains (DoltHub)" style={{
+                              marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 4,
+                              background: COLORS.teal + "20", color: COLORS.teal, fontWeight: 600,
+                            }}>IV✓</span>
+                          )}
+                          {r.condor ? <span style={{ color: COLORS.textDim, marginLeft: 6 }}>{expanded === r.ticker ? "▾" : "▸"}</span> : ""}
                         </TD>
                         <TD mono>${r.close.toFixed(2)}</TD>
                         <TD>

@@ -16,8 +16,8 @@ export default function StrategyPage({ metrics, benchmark }) {
       name: "IV percentile",
       icon: "%",
       color: COLORS.teal,
-      desc: "Current IV must rank in the bottom half of its trailing 1-year distribution. Counterintuitively, low IV percentiles produce the best risk-adjusted returns for volatility sellers.",
-      detail: "When nobody's panicking, hedging demand still keeps IV rich relative to realized outcomes. High IV percentiles signal stress regimes where realized vol can spike and crush short positions.",
+      desc: "Current IV must rank in the TOP half of its trailing 1-year range — a reversal of this project's original rule, and of common short-vol folklore. Conditional on the other two gates, richer IV meant +2.5% per trade; cheap IV meant -1.0%.",
+      detail: "The original design (and the paper behind it) filtered FOR low percentiles, citing platform-level decile studies. Train-period evidence from this engine's own trades showed the opposite once portfolio-level costs and the VRP/term-structure gates are in place: you get paid for selling premium when there is premium to sell. The filter was inverted in v2.1 — and the reversal, with the evidence, is documented rather than hidden.",
     },
     {
       name: "Term structure",
@@ -101,7 +101,7 @@ export default function StrategyPage({ metrics, benchmark }) {
         <div style={{ ...CARD, borderRadius: 12, padding: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>Iron condor</span>
-            <span style={{ fontSize: 12, color: COLORS.textDim }}>25Δ short / 5Δ long · 30 DTE · entered the day after the signal</span>
+            <span style={{ fontSize: 12, color: COLORS.textDim }}>16Δ short / 5Δ long · 30 DTE · entered the day after the signal · top 3 candidates per day, ranked by VRP</span>
           </div>
           <svg viewBox="0 0 600 160" style={{ width: "100%", height: 160 }}>
             <line x1="30" y1="120" x2="570" y2="120" stroke={COLORS.border} strokeWidth="0.5" />
