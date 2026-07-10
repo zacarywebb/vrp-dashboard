@@ -101,7 +101,7 @@ export default function StrategyPage({ metrics, benchmark }) {
         <div style={{ ...CARD, borderRadius: 12, padding: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>Iron condor</span>
-            <span style={{ fontSize: 12, color: COLORS.textDim }}>16Δ short / 5Δ long · 30 DTE · entered the day after the signal · top 3 candidates per day, ranked by VRP</span>
+            <span style={{ fontSize: 12, color: COLORS.textDim }}>16Δ short / 5Δ long · 30 DTE · entered the day after the signal · top 3 candidates per day ranked by VRP · IV must also clear 1-year realized vol · no entries within 2 days of a scheduled FOMC meeting</span>
           </div>
           <svg viewBox="0 0 600 160" style={{ width: "100%", height: 160 }}>
             <line x1="30" y1="120" x2="570" y2="120" stroke={COLORS.border} strokeWidth="0.5" />
@@ -167,7 +167,7 @@ export default function StrategyPage({ metrics, benchmark }) {
             },
             {
               color: COLORS.purple, title: "Hygiene: no lookahead, split discipline",
-              body: "Signals computed on day t trigger entries at day t+1 prices. All selection — a 36-combination exit-parameter sweep plus 5 structural experiments (spread sides, regime gates) — used pre-2018 data only; everything after 2018 is untouched out-of-sample. The position-sizing regression is also fit on pre-2018 trades only.",
+              body: "Signals computed on day t trigger entries at day t+1 prices. All selection — a 36-combination exit-parameter sweep plus 24 experiment trials across three research rounds — used pre-2018 data only; everything after 2018 is untouched out-of-sample. The position-sizing regression is also fit on pre-2018 trades only.",
               foot: "Result: the headline numbers come from a period no parameter ever saw.",
             },
           ].map((c, i) => (

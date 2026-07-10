@@ -4,6 +4,7 @@ import StrategyPage from "./pages/Strategy";
 import BacktestPage from "./pages/Backtest";
 import ValidationPage from "./pages/Validation";
 import ScreenerPage from "./pages/Screener";
+import ResearchPage from "./pages/Research";
 
 import backtestStatic from "./data/backtest.json";
 import screenerStatic from "./data/screener.json";
@@ -11,7 +12,7 @@ import validationStatic from "./data/validation.json";
 import dsrStatic from "./data/dsr.json";
 import paperStatic from "./data/paper.json";
 
-const NAV_ITEMS = ["Strategy", "Backtest", "Validation", "Screener"];
+const NAV_ITEMS = ["Strategy", "Backtest", "Validation", "Screener", "Research"];
 
 function useApi(path, fallback, onLive) {
   const [state, setState] = useState({ data: null, loading: true });
@@ -106,6 +107,7 @@ export default function App() {
             refreshing={refreshing}
           />
         )}
+        {page === 4 && <ResearchPage />}
       </main>
 
       <footer style={{ borderTop: `0.5px solid ${COLORS.border}`, padding: "20px 32px", maxWidth: 1020, margin: "0 auto" }}>
