@@ -7,6 +7,41 @@ companion repo and publish here automatically.
 
 **[Live demo →](https://zacarywebb.github.io/vrp-dashboard/)**
 
+## The idea
+
+Option buyers systematically overpay for convexity — index puts as portfolio insurance,
+calls as lottery tickets — so implied volatility trades above the volatility that subsequently
+realizes. That spread, the variance risk premium, is a well-documented structural feature of
+options markets (*Carr & Wu 2009; Bakshi & Kapadia 2003*). Selling options harvests it, but
+naively selling volatility blows up in the regimes where realized vol spikes past implied. The
+strategy is a systematic filter for the conditions where the premium is present, structural,
+and free of near-term stress.
+
+## Signals
+
+A trade is considered only when all of these hold:
+
+- **VRP spread** — implied vol exceeds 30-day realized vol by ≥1 point, sustained over a
+  75-day window. The premium must be structural, not a one-day blip.
+- **IV percentile — top half of its 1-year range.** The variance premium is countercyclical:
+  it is largest after volatility rises and predicts higher subsequent short-vol returns
+  (*Bollerslev, Tauchen & Zhou 2009*). You get paid most when there is premium to sell.
+- **Term structure** — the ticker's short-horizon realized vol must not exceed its long-horizon
+  realized vol (blended with the VIX3M/VIX ratio for SPY). Backwardation flags acute stress
+  where short-vol strategies perform poorly (*Johnson 2017*).
+- **Long-run anchor** — implied vol must also clear 1-year realized vol. Volatility mean-reverts
+  to its long-run level, so that is the benchmark the premium is measured against
+  (*Goyal & Saretto 2009*).
+
+## Trade structure
+
+Sell a 16-delta strangle, buy 5-delta wings, 30 days to expiry — a defined-risk iron condor
+with a known maximum loss at entry. Each day's candidates are ranked by VRP spread and the top 3
+are taken. Positions are entered the day after the signal (no lookahead), managed at 75% of
+credit captured, stopped at 2× credit, and closed around scheduled FOMC meetings where
+event-window premia can invert (*Wright 2021*). Sizing is capped at 5% of equity per position,
+40% total margin, 10 concurrent positions.
+
 ## Results (out-of-sample, 2018–2025)
 
 | Metric | Strategy | SPY buy & hold |
@@ -17,55 +52,33 @@ companion repo and publish here automatically.
 | Win rate | 83.9% (503 trades) | — |
 | Correlation to SPY | 0.14 | 1.0 |
 
-Parameters were selected on pre-2018 data only; the test period never touched selection. An
-earlier version of this project reported a 4.5 Sharpe / 97% win rate — those were simulation
-artifacts (no daily mark-to-market, flat-vol pricing), and the rebuild that fixed them is the
-main story of the dashboard's Backtest and Validation tabs.
+All parameters were selected on pre-2018 data; the 2018–2025 test period never touched
+selection. Cash earns the 3-month T-bill rate, and every trade is charged commissions plus
+half the bid/ask spread on all four legs at entry and exit.
 
-## The signals — and why they work
+## Methodology
 
-A trade needs the variance premium to be present, structural, and free of near-term stress:
-
-- **VRP spread** (IV − realized vol, positive and persistent). Option buyers systematically
-  overpay for convexity, so IV exceeds subsequent RV on average — the premium the whole
-  strategy collects (*Carr & Wu 2009; Bakshi & Kapadia 2003*).
-- **IV percentile — top half of its 1-year range.** This is inverted from common folklore: the
-  VRP is *countercyclical* and highest after volatility rises, so you get paid most when there
-  is premium to sell (*Bollerslev, Tauchen & Zhou 2009*). Our own trade data agreed — the
-  low-IV rule was filtering out the profitable trades.
-- **Term structure** (per-ticker short vs long realized vol; VIX3M/VIX for SPY). Backwardation
-  flags acute stress where short-vol strategies bleed — stay out (*Johnson 2017*).
-- **Long-run anchor** (IV must also clear 1-year realized vol). Volatility mean-reverts to its
-  long-run level, so that's the benchmark that matters (*Goyal & Saretto 2009*).
-
-**Trade:** sell a 16Δ strangle, buy 5Δ wings, 30 DTE, one day after the signal. Rank the day's
-candidates by VRP and take the top 3. Manage at 75% of credit, stop at 2× credit, skip the days
-around scheduled FOMC meetings.
-
-## Statistical honesty
-
-A short-vol backtest that looks amazing usually is. Two guardrails keep this one grounded:
-
-- **Every improvement is pre-registered and tested on training data only**, then confirmed on a
-  test period no parameter ever saw. Rejected ideas (VVIX gates, single-sided books, leverage,
-  asymmetric deltas) are documented alongside the adopted ones.
-- **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) counts every one of the ~60 trials
-  run, so selection bias is quantified rather than hidden. On the untouched test period, the
-  probabilistic Sharpe puts ~92% odds that the true Sharpe exceeds 1.0 — likely real, though a
-  live forward track (running now on the Screener tab) is the only thing that truly settles it.
-
-Full methodology, pricing validation against real option chains, and annotated citations are on
-the live dashboard.
+- **Pricing** — iron condor legs are priced with Black-Scholes on a volatility surface with a
+  measured skew (25Δ puts richer than ATM, calls cheaper), calibrated against real SPY option
+  chains. The Validation tab shows synthetic vs. real-market pricing side by side.
+- **Mark-to-market** — every open position is repriced daily against current spot, IV, and time
+  to expiry, so the equity curve reflects real intra-trade drawdowns rather than only
+  settled P&L.
+- **Selection discipline** — every candidate rule is pre-registered and tested on the training
+  period, then confirmed once on the untouched test period. The Deflated Sharpe Ratio
+  (*Bailey & López de Prado 2014*) accounts for the number of configurations tried, and a live
+  paper-trading track record runs forward on the Screener tab.
 
 ## Stack
 
-- **Frontend:** React + Vite, hand-rolled SVG charts, no chart library. Deployed to GitHub Pages.
-- **Backend (companion repo):** Python — daily mark-to-market backtest engine, Black-Scholes
-  pricing with a skew surface calibrated to real chains, FastAPI for the live API.
-- **Data (all free):** Yahoo Finance (prices), FRED (VIX/VIX3M, T-bill rates), DoltHub
-  (real option chains for validation + per-ticker IV), CBOE (VVIX).
-- **Automation:** a GitHub Action runs the screener after each market close and pushes fresh
-  signals + the paper-trading track record here.
+- **Frontend** — React + Vite with hand-rolled SVG charts (no chart library), deployed to
+  GitHub Pages.
+- **Backend** (companion repo) — Python: daily mark-to-market backtest engine, Black-Scholes
+  pricing with a calibrated skew surface, FastAPI for the live API.
+- **Data** (all free) — Yahoo Finance (prices), FRED (VIX/VIX3M, T-bill rates), DoltHub (real
+  option chains and per-ticker IV), CBOE (VVIX).
+- **Automation** — a GitHub Action runs the screener after each market close and pushes fresh
+  signals and the paper-trading record to this repo.
 
 ## Disclaimer
 
